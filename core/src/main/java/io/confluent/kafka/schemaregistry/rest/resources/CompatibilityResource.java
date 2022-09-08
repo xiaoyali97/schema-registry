@@ -26,6 +26,7 @@ import io.confluent.kafka.schemaregistry.exceptions.SchemaRegistryStoreException
 import io.confluent.kafka.schemaregistry.rest.VersionId;
 import io.confluent.kafka.schemaregistry.rest.exceptions.Errors;
 import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
+import io.confluent.kafka.schemaregistry.storage.LookupFilter;
 import io.confluent.kafka.schemaregistry.utils.QualifiedSubject;
 import io.confluent.rest.annotations.PerformanceMetric;
 import io.swagger.v3.oas.annotations.Operation;
@@ -197,7 +198,7 @@ public class CompatibilityResource {
     List<Schema> previousSchemas = new ArrayList<>();
     try {
       //Don't check compatibility against deleted schema
-      schemaRegistry.getAllVersions(subject, false)
+      schemaRegistry.getAllVersions(subject, LookupFilter.DEFAULT)
           .forEachRemaining(previousSchemas::add);
     } catch (SchemaRegistryException e) {
       throw Errors.storeException("Error while retrieving schema for subject "
