@@ -93,6 +93,9 @@ public class RestService implements Configurable {
   private static final TypeReference<List<String>> GET_SCHEMA_TYPES_TYPE =
       new TypeReference<List<String>>() {
       };
+  private static final TypeReference<Integer> GET_SCHEMAS_COUNT_TYPE =
+      new TypeReference<Integer>() {
+      };
   private static final TypeReference<JsonNode> GET_SCHEMA_ONLY_BY_VERSION_RESPONSE_TYPE =
       new TypeReference<JsonNode>() {
       };
@@ -871,6 +874,28 @@ public class RestService implements Configurable {
 
     List<String> response = httpRequest(path, "GET", null, requestProperties,
         GET_SCHEMA_TYPES_TYPE);
+    return response;
+  }
+
+  public int getSchemasCount() throws RestClientException, IOException {
+    return getSchemasCount(DEFAULT_REQUEST_PROPERTIES, null, false, false);
+  }
+
+  public int getSchemasCount(Map<String, String> requestProperties,
+                             String subjectPrefix,
+                             boolean lookupActiveOnlySchema,
+                             boolean lookupDeletedOnlySchema)
+      throws RestClientException, IOException {
+    UriBuilder builder = UriBuilder.fromPath("/schemas/count")
+        .queryParam("activeOnly", lookupActiveOnlySchema)
+        .queryParam("deletedOnly", lookupDeletedOnlySchema);
+    if (subjectPrefix != null) {
+      builder.queryParam("subjectPrefix", subjectPrefix);
+    }
+    String path = builder.build().toString();
+
+    int response = httpRequest(path, "GET", null, requestProperties,
+        GET_SCHEMAS_COUNT_TYPE);
     return response;
   }
 

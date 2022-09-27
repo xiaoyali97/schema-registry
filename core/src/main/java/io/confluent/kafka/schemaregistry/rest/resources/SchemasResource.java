@@ -15,6 +15,7 @@
 
 package io.confluent.kafka.schemaregistry.rest.resources;
 
+import com.google.common.collect.Iterators;
 import io.confluent.kafka.schemaregistry.client.rest.Versions;
 import io.confluent.kafka.schemaregistry.client.rest.entities.Schema;
 import io.confluent.kafka.schemaregistry.client.rest.entities.SchemaString;
@@ -24,6 +25,7 @@ import io.confluent.kafka.schemaregistry.exceptions.SchemaRegistryStoreException
 import io.confluent.kafka.schemaregistry.rest.exceptions.Errors;
 import io.confluent.kafka.schemaregistry.storage.KafkaSchemaRegistry;
 import io.confluent.kafka.schemaregistry.storage.LookupFilter;
+import io.confluent.kafka.schemaregistry.utils.QualifiedSubject;
 import io.confluent.rest.annotations.PerformanceMetric;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -107,6 +109,50 @@ public class SchemasResource {
       index++;
     }
     return filteredSchemas;
+  }
+
+  @GET
+  @Path("/count")
+  @DocumentedName("getSchemasCount")
+  @Operation(summary = "Get schemas count",
+      description = "Get the schemas count matching the specified parameters.",
+      responses = {
+          @ApiResponse(responseCode = "200",
+              description = "The schemas count the specified parameters",
+              content = @Content(schema = @io.swagger.v3.oas.annotations.media.Schema(
+                  implementation = String.class))),
+          @ApiResponse(responseCode = "500",
+              description = "Error code 50001 -- Error in the backend data store\n")
+      })
+  public int getSchemasCount(
+      @Parameter(description = "Filters results by the respective subject prefix")
+      @QueryParam("subjectPrefix") String subjectPrefix,
+      @Parameter(description = "Whether to return non deleted schemas count only")
+      @DefaultValue("false") @QueryParam("activeOnly") boolean lookupActiveOnlySchema,
+      @Parameter(description = "Whether to return soft deleted schemas count only")
+      @DefaultValue("false") @QueryParam("deletedOnly") boolean lookupDeletedOnlySchema
+  ) {
+    Iterator<Schema> schemas;
+    String errorMessage = "Error while getting schemas count for prefix " + subjectPrefix;
+    LookupFilter filter;
+    // if both activeOnly & deletedOnly are true, return count of all schemas
+    if (lookupDeletedOnlySchema == lookupActiveOnlySchema) {
+      filter = LookupFilter.INCLUDE_DELETED;
+    } else if (lookupDeletedOnlySchema) {
+      filter = LookupFilter.DELETED_ONLY;
+    } else {
+      filter = LookupFilter.DEFAULT;
+    }
+    try {
+      schemas = schemaRegistry.getVersionsWithSubjectPrefix(
+          subjectPrefix != null ? subjectPrefix : QualifiedSubject.CONTEXT_WILDCARD,
+          filter, false);
+    } catch (SchemaRegistryStoreException e) {
+      throw Errors.storeException(errorMessage, e);
+    } catch (SchemaRegistryException e) {
+      throw Errors.schemaRegistryException(errorMessage, e);
+    }
+    return Iterators.size(schemas);
   }
 
   @GET

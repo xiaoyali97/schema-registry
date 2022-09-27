@@ -38,6 +38,7 @@ import org.apache.avro.Schema.Parser;
 import org.apache.avro.SchemaParseException;
 import org.junit.Test;
 
+import java.io.IOException;
 import java.util.*;
 import java.net.URL;
 import java.net.HttpURLConnection;
@@ -603,6 +604,30 @@ public class RestApiTest extends ClusterTestHarness {
   public void testGetSchemaTypes() throws Exception {
     assertEquals(new HashSet<>(Arrays.asList("AVRO", "JSON", "PROTOBUF")),
         new HashSet<>(restApp.restClient.getSchemaTypes()));
+  }
+
+  @Test
+  public void testGetSchemasCount() throws Exception {
+    String subject1 = "testTopic1";
+    String subject2 = "testTopic2";
+
+    List<String> schemas = TestUtils.getRandomCanonicalAvroString(4);
+    for (int i = 0; i < 3; i++) {
+      TestUtils.registerAndVerifySchema(restApp.restClient, schemas.get(i), i+1, subject1);
+    }
+    TestUtils.registerAndVerifySchema(restApp.restClient, schemas.get(3), 4, subject2);
+
+    assertEquals((Integer)1, restApp.restClient.deleteSchemaVersion(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, "1"));
+
+    assertEquals(4, restApp.restClient.getSchemasCount());
+    assertEquals(4, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, null, true, true));
+    assertEquals(3, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, null, true, false));
+    assertEquals(1, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, null, false, true));
+
+    assertEquals(3, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, false, false));
+    assertEquals(3, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, true, true));
+    assertEquals(2, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, true, false));
+    assertEquals(1, restApp.restClient.getSchemasCount(RestService.DEFAULT_REQUEST_PROPERTIES, subject1, false, true));
   }
 
   @Test

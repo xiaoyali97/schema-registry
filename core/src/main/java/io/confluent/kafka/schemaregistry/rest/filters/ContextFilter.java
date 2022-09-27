@@ -158,7 +158,7 @@ public class ContextFilter implements ContainerRequestFilter {
         subject = QualifiedSubject.normalizeContext(context) + subject;
         builder.replaceQueryParam("subject", subject);
       }
-    } else if (path.equals("schemas") || path.equals("subjects")) {
+    } else if (path.equals("schemas") || path.equals("schemas/count") || path.equals("subjects")) {
       String subject = queryParams.getFirst("subjectPrefix");
       if (subject == null) {
         subject = "";
