@@ -115,7 +115,8 @@ public class SchemasResource {
   @Path("/count")
   @DocumentedName("getSchemasCount")
   @Operation(summary = "Get schemas count",
-      description = "Get the schemas count matching the specified parameters.",
+      description = "Get the schemas count matching the specified parameters, include all "
+          + "soft-deleted and non-deleted schemas by default.",
       responses = {
           @ApiResponse(responseCode = "200",
               description = "The schemas count the specified parameters",
