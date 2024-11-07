@@ -172,7 +172,20 @@ final class SchemaRegistryCoordinator extends AbstractCoordinator implements Clo
     } catch (InterruptedException e) {
       throw new RuntimeException(e);
     }
-    return getIdentity().isLeader();
+    // wait until current pod is no longer the leader
+    long start = time.milliseconds();
+    long timeout = 30000;
+    while (time.milliseconds() - start < timeout) {
+      if (!getIdentity().isLeader()) {
+        return true;
+      }
+      try {
+        Thread.sleep(100);
+      } catch (InterruptedException e) {
+        return false;
+      }
+    }
+    return false;
   }
 
   @Override
