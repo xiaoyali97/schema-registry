@@ -127,4 +127,8 @@ public interface SchemaRegistry extends SchemaVersionFetcher {
 
   // Can be used to pass values between extensions
   Map<String, Object> properties();
+
+  default boolean giveUpLeader(){
+    return true;
+  }
 }

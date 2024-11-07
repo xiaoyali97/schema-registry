@@ -21,6 +21,7 @@ import io.confluent.kafka.schemaregistry.storage.SchemaRegistryIdentity;
 import org.apache.kafka.clients.GroupRebalanceConfig;
 import org.apache.kafka.clients.consumer.internals.AbstractCoordinator;
 import org.apache.kafka.clients.consumer.internals.ConsumerNetworkClient;
+import org.apache.kafka.clients.consumer.internals.RequestFuture;
 import org.apache.kafka.common.message.JoinGroupRequestData;
 import org.apache.kafka.common.message.JoinGroupResponseData;
 import org.apache.kafka.common.metrics.Metrics;
@@ -39,6 +40,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * This class manages the coordination process with the Kafka group coordinator on the broker for
@@ -153,6 +156,23 @@ final class SchemaRegistryCoordinator extends AbstractCoordinator implements Clo
   @VisibleForTesting
   public SchemaRegistryIdentity getIdentity() {
     return identity;
+  }
+
+  // should only be called before shutdown
+  public boolean giveUpLeader() {
+    if (!identity.isLeader()) {
+      return true;
+    }
+    this.identity.setLeaderEligibility(false);
+    RequestFuture<Void> future = this.maybeLeaveGroup("Giving up leader");
+    try {
+      if (!future.awaitDone(30, TimeUnit.SECONDS)) {
+        log.warn("Timed out waiting for leave group to complete.");
+      }
+    } catch (InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+    return getIdentity().isLeader();
   }
 
   @Override

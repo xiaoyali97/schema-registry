@@ -297,6 +297,10 @@ public class KafkaGroupLeaderElector implements LeaderElector, SchemaRegistryReb
     }
   }
 
+  public boolean giveUpLeader() {
+    return coordinator.giveUpLeader();
+  }
+
   private void stop(boolean swallowException) {
     log.info("Stopping the schema registry group member.");
 

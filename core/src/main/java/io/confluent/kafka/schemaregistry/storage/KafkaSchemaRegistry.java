@@ -2591,6 +2591,14 @@ public class KafkaSchemaRegistry implements SchemaRegistry, LeaderAwareSchemaReg
                     + " not supported");
   }
 
+  @Override
+  public boolean giveUpLeader() {
+    if (this.leaderElector instanceof KafkaGroupLeaderElector) {
+      return ((KafkaGroupLeaderElector) this.leaderElector).giveUpLeader();
+    }
+    return true;
+  }
+
   private boolean isSchemaFieldValidationEnabled(Config config) {
     return config.isValidateFields() != null ? config.isValidateFields() : defaultValidateFields;
   }

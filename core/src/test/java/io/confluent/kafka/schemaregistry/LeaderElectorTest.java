@@ -454,6 +454,48 @@ public class LeaderElectorTest extends ClusterTestHarness {
   }
 
   @Test
+  public void testGiveUpLeader() throws Exception {
+    final String subject = "testTopic";
+    final String configSubject = "configTopic";
+    List<String> avroSchemas = TestUtils.getRandomCanonicalAvroString(4);
+
+    // Since leader selection depends on the lexicographic ordering of members, we need to make
+    // sure the first instance gets a lower port.
+    int port1 = choosePort();
+    int port2 = choosePort();
+    if (port2 < port1) {
+      int tmp = port2;
+      port2 = port1;
+      port1 = tmp;
+    }
+
+    // create schema registry instance 1
+    final RestApp restApp1 = new RestApp(port1,
+        zkConnect(), bootstrapServers(), KAFKASTORE_TOPIC,
+        CompatibilityLevel.NONE.name, true, null);
+    restApp1.start();
+
+    // create schema registry instance 2
+    final RestApp restApp2 = new RestApp(port2,
+        zkConnect(), bootstrapServers(), KAFKASTORE_TOPIC,
+        CompatibilityLevel.NONE.name, true, null);
+
+    restApp2.start();
+    assertTrue("Schema registry instance 1 should be the leader", restApp1.isLeader());
+    assertFalse("Schema registry instance 2 shouldn't be the leader", restApp2.isLeader());
+    assertEquals("Instance 2's leader should be instance 1",
+        restApp1.myIdentity(), restApp2.leaderIdentity());
+
+    restApp1.schemaRegistry().giveUpLeader();
+
+    TestUtils.waitUntilTrue(restApp2::isLeader, 15000,
+        "Schema registry instance 2 should become the leader");
+    assertFalse("Schema registry instance 1 shouldn't be the leader", restApp1.isLeader());
+    assertEquals("Instance 1's leader should be instance 2",
+        restApp2.myIdentity(), restApp1.leaderIdentity());
+  }
+
+  @Test
   /**
    * Test import mode and registration of schemas with version and id when a 'leader cluster' and
    * 'follower cluster' is present. (Follower cluster == all nodes have leaderEligibility false)
